@@ -2804,16 +2804,23 @@ class WebSocketServerProtocol(WebSocketProtocol):
                 return self.failHandshake("HTTP Host header appears more than once in opening handshake request")
 
             self.http_request_host = self.http_headers["host"].strip()
+            port_is_forwarded = "x-forwarded-port" in self.http_headers
 
-            if self.http_request_host.find(":") >= 0 and not self.http_request_host.endswith(']'):
+            if port_is_forwarded:
+                (h, p) = self.http_request_host, self.http_headers["x-forwarded-port"]
+            elif self.http_request_host.find(":") >= 0 and not self.http_request_host.endswith(']'):
                 (h, p) = self.http_request_host.rsplit(":", 1)
+            else:
+                (h, p) = None, None
+
+            if h and p:
                 try:
                     port = int(str(p.strip()))
                 except ValueError:
                     return self.failHandshake("invalid port '%s' in HTTP Host header '%s'" % (str(p.strip()), str(self.http_request_host)))
 
                 # do port checking only if externalPort or URL was set
-                if self.factory.externalPort:
+                if self.factory.externalPort and not port_is_forwarded:
                     if port != self.factory.externalPort:
                         return self.failHandshake("port %d in HTTP Host header '%s' does not match server listening port %s" % (port, str(self.http_request_host), self.factory.externalPort))
                 else:
