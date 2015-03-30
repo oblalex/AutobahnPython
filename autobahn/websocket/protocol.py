@@ -2813,7 +2813,7 @@ class WebSocketServerProtocol(WebSocketProtocol):
             else:
                 (h, p) = None, None
 
-            if h and p:
+            if h is not None and p is not None:
                 try:
                     port = int(str(p.strip()))
                 except ValueError:
